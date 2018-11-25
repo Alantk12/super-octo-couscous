@@ -1,18 +1,24 @@
-# super-octo-couscous
-program 
-# define punctuation
-punctuations = '''!()-[]{};:'"\,<>./?@#$%^&*_~'''
+from scrapy.contrib.spiders import CrawlSpider, Rule
+from scrapy.contrib.linkextractors.sgml import SgmlLinkExtractor
+from scrapy.selector import HtmlXPathSelector
+from craigslist_sample.items import CraigslistSampleItem
 
-my_str = "Hello!!!, he said ---and went."
+class MySpider(CrawlSpider):
+    name = "craigs"
+    allowed_domains = ["sfbay.craigslist.org"]
+    start_urls = ["http://sfbay.craigslist.org/search/npo"]
 
-# To take input from the user
-# my_str = input("Enter a string: ")
+    rules = (
+        Rule(SgmlLinkExtractor(allow=(), restrict_xpaths=('//a[@class="button next"]',)), callback="parse_items", follow= True),
+    )
 
-# remove punctuation from the string
-no_punct = ""
-for char in my_str:
-   if char not in punctuations:
-       no_punct = no_punct + char
-
-# display the unpunctuated string
-print(no_punct)
+    def parse_items(self, response):
+        hxs = HtmlXPathSelector(response)
+        titles = hxs.xpath('//span[@class="pl"]')
+        items = []
+        for titles in titles:
+            item = CraigslistSampleItem()
+            item["title"] = titles.xpath("a/text()").extract()
+            item["link"] = titles.xpath("a/@href").extract()
+            items.append(item)
+        return(items)
